@@ -1,0 +1,71 @@
+#!/bin/bash
+#
+# This script is executed whenever your appliance boots.  Here you can add
+# commands to be executed before the system enters the first runlevel.  This
+# could include loading kernel modules, starting daemons that aren't managed
+# by init files, asking questions at the console, etc.
+#
+# The 'kiwi_type' variable will contain the format of the appliance (oem =
+# disk image, vmx = VMware, iso = CD/DVD, xen = Xen).
+#
+
+# read in some variables
+. /studio/profile
+
+if [ -f /etc/init.d/suse_studio_firstboot ]
+then
+
+  # Put commands to be run on the first boot of your appliance here
+  echo "Running SUSE Studio first boot script..."
+  
+# read in some variables
+. /studio/profile
+
+# read in KIWI utility functions
+. /.kconfig
+
+#======================================
+# Prune extraneous files
+#--------------------------------------
+# Remove all documentation
+docfiles=`find /usr/share/doc/packages -type f |grep -iv "copying\|license\|copyright"`
+rm -f $docfiles
+rm -rf /usr/share/info
+rm -rf /usr/share/man
+
+#=====================================
+# Install Scan progs
+#=====================================
+
+cd /sources
+rpm -ivh cav-linux_x64.rpm
+
+#=====================================
+# Copie des sources FPROT
+#=====================================
+
+cp -R /sources/f-prot/ /opt
+cd /opt/f-prot
+
+#=====================================
+# Creation fichier de réponse de FPROT
+#=====================================
+
+echo -e "EOF\nY\n/usr/local/bin\nY\n/usr/local/man/man8\n/usr/local/man/man1\n/usr/local/man/man5\n/opt/f-prot/doc/man/fpupdate.8\nY\n/usr/local/man/man1\nY\nY\nEOF" > /opt/f-prot/f-prot-reponse.txt
+
+#=====================================
+# Installation de F-PROT
+#=====================================
+
+/opt/f-prot/install-f-prot.pl < /opt/f-prot/f-prot-reponse.txt
+
+#=====================================
+# Installation de Sophos
+#=====================================
+
+/sources/sophos-av/install.sh /opt/sophos-av --automatic --acceptlicense --live-protection[=False]
+
+
+exit 0
+
+fi
